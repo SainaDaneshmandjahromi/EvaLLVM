@@ -5,7 +5,10 @@
 int main(){
 
     std::string program = R"(
-        (var x 42)
+
+        (var z 32)
+
+        (var x (+ z 10))
 
         (begin 
             (var (x string) "Hello")
@@ -15,6 +18,8 @@ int main(){
 
         (set x 100)
         (printf "X: %d\n\n" x)
+
+        (printf "Is X == 100?: %d\n" (== x 100))
 
     )";
 

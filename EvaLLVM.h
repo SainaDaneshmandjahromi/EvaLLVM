@@ -20,6 +20,14 @@ using syntax::EvaParser;
 
 using Env = std::shared_ptr<Environment>;
 
+// Generic binary operator:
+#define GEN_BINARY_OP(Op, varName)                     \
+    do {                                               \
+        auto op1 = gen(exp.list[1], env);              \
+        auto op2 = gen(exp.list[2], env);              \
+        return builder->Op(op1, op2, varName);         \
+    } while (false)
+
 class EvaLLVM {
 
     public:
@@ -96,7 +104,39 @@ class EvaLLVM {
                     auto tag = exp.list[0];
                     if (tag.type == ExpType::SYMBOL){
                         auto op = tag.string;
-                        if (op == "var"){
+
+                    if (op == "+"){
+                            GEN_BINARY_OP(CreateAdd, "tmpadd");
+                        }
+                    else if (op == "-"){
+                            GEN_BINARY_OP(CreateSub, "tmpsub");
+                        } 
+                    else if (op == "*"){
+                            GEN_BINARY_OP(CreateMul, "tmpmul");
+                        } 
+                    else if (op == "/"){
+                            GEN_BINARY_OP(CreateSDiv, "tmpdiv");
+                        }
+                    else if (op == ">"){
+                        GEN_BINARY_OP(CreateICmpUGT, "tmpcmp");
+                    }
+                    else if (op == "<"){
+                        GEN_BINARY_OP(CreateICmpULT, "tmpcmp");
+                    }
+                    else if (op == "=="){
+                        GEN_BINARY_OP(CreateICmpEQ, "tmpcmp");
+                    }
+                    else if (op == "!="){
+                        GEN_BINARY_OP(CreateICmpNE, "tmpcmp");
+                    } 
+                    else if (op == ">="){
+                        GEN_BINARY_OP(CreateICmpUGE, "tmpcmp");
+                    }
+                    else if (op == "<="){
+                        GEN_BINARY_OP(CreateICmpULE, "tmpcmp");
+                    }
+                    
+                    else if (op == "var"){
                             auto VarNameDecl = exp.list[1];
                             auto varName = extractVarName(VarNameDecl);
                             auto init = gen(exp.list[2], env);
@@ -116,6 +156,7 @@ class EvaLLVM {
                             return builder->CreateStore(value, varBinding);
 
                         }
+
                         else if (op == "begin"){
 
                             auto blockEnv = std::make_shared<Environment>(std::map<std::string, llvm::Value*>{}, env);
@@ -126,6 +167,7 @@ class EvaLLVM {
                             }
                             return blockRes;
                         }
+
                         else if(op == "printf"){
 
                             auto printfFn = module->getFunction("printf");

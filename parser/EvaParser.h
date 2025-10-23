@@ -20,7 +20,6 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-private-field"
 
-#include <assert.h>
 #include <array>
 #include <iostream>
 #include <map>

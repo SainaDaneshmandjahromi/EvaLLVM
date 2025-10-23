@@ -6,3 +6,6 @@
 
 lli ./out.ll
 
+echo $?
+
+printf "\n"

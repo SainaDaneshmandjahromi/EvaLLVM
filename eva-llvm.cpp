@@ -30,8 +30,19 @@ int main(){
 
         (while (> x 0)
             (begin
-                (set x (- x 1))
-                (printf "X: %d\n\n" x)))
+                (set x (- x 1))))
+
+        
+        (def square (x) (* x x))
+
+        (def sum ((a number) (b number)) -> number (+ a b))
+
+        (set x (sum 2 3))
+        (printf "X: %d\n\n" x)
+
+
+        0
+
     )";
 
     EvaLLVM vm;

@@ -59,10 +59,34 @@ body:                                             ; preds = %cond
   %x12 = load i32, i32* %x, align 4
   %tmpsub = sub i32 %x12, 1
   store i32 %tmpsub, i32* %x, align 4
-  %x13 = load i32, i32* %x, align 4
-  %5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @6, i32 0, i32 0), i32 %x13)
   br label %cond
 
 loopend:                                          ; preds = %cond
+  %5 = call i32 @sum(i32 2, i32 3)
+  store i32 %5, i32* %x, align 4
+  %x13 = load i32, i32* %x, align 4
+  %6 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @6, i32 0, i32 0), i32 %x13)
   ret i32 0
+}
+
+define i32 @square(i32 %x) {
+entry:
+  %x1 = alloca i32, align 4
+  store i32 %x, i32* %x1, align 4
+  %x2 = load i32, i32* %x1, align 4
+  %x3 = load i32, i32* %x1, align 4
+  %tmpmul = mul i32 %x2, %x3
+  ret i32 %tmpmul
+}
+
+define i32 @sum(i32 %a, i32 %b) {
+entry:
+  %a1 = alloca i32, align 4
+  store i32 %a, i32* %a1, align 4
+  %b2 = alloca i32, align 4
+  store i32 %b, i32* %b2, align 4
+  %a3 = load i32, i32* %a1, align 4
+  %b4 = load i32, i32* %b2, align 4
+  %tmpadd = add i32 %a3, %b4
+  ret i32 %tmpadd
 }

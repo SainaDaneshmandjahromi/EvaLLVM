@@ -93,11 +93,16 @@ class EvaLLVM {
                             return builder->CreateLoad(localVar->getAllocatedType(), localVar, varName.c_str());
                         }
 
-                        else if(auto globalVar = llvm::dyn_cast<llvm::GlobalVariable>(value))
-
+                        else if(auto globalVar = llvm::dyn_cast<llvm::GlobalVariable>(value)){
                             return builder->CreateLoad(globalVar->getInitializer()->getType(), globalVar, varName.c_str());
+                        }
 
+
+                        else{
+                            return value;
+                        }
                     }
+
 
 
                 case ExpType::LIST:
@@ -197,6 +202,10 @@ class EvaLLVM {
                         return builder->getInt32(0);
 
                     }
+
+                    else if (op == "def"){
+                        return compileFunction(exp, exp.list[1].string, env);
+                    }
                     
                     else if (op == "var"){
                             auto VarNameDecl = exp.list[1];
@@ -241,12 +250,24 @@ class EvaLLVM {
                             return builder->CreateCall(printfFn,args);
 
                             }
-                    }
-                    else
-                    return builder->getInt32(42);
-                }
-            }
+                        else{
+                        auto callable = gen(exp.list[0], env);
 
+                        std::vector<llvm::Value*> args{};
+
+                        for(auto i = 1; i < exp.list.size(); i++){
+                            args.push_back(gen(exp.list[i], env));
+                        }
+
+                        auto fn = (llvm::Function*) callable;
+
+                        return builder->CreateCall(fn, args);
+
+                        }
+                    }
+            }
+            return builder->getInt32(0);
+        }
         
         std::string extractVarName(const Exp& exp){
             return exp.type == ExpType::LIST ? exp.list[0].string : exp.string;
@@ -266,6 +287,61 @@ class EvaLLVM {
             }
 
             return builder -> getInt32Ty();
+
+        }
+
+        bool hasReturnType(const Exp& fnExp){
+            return fnExp.list[3].type == ExpType::SYMBOL && fnExp.list[3].string == "->";
+        }
+
+        llvm::FunctionType* extractFunctionType(const Exp& fnExp){
+
+            auto params = fnExp.list[2];
+
+            auto returnType = hasReturnType(fnExp) ? getTypeFromString(fnExp.list[4].string) : builder->getInt32Ty();
+
+            std::vector<llvm::Type*> paramTypes{};
+
+            for(auto& param : params.list){
+                auto paramTy = extractVarType(param);
+                paramTypes.push_back(paramTy);
+            }
+
+            return llvm::FunctionType::get(returnType, paramTypes, false);
+        }
+
+        llvm::Value* compileFunction(const Exp& fnExp, std::string fnName, Env env){
+            auto params = fnExp.list[2];
+
+            //If the function is typed or no
+            auto body = hasReturnType(fnExp) ? fnExp.list [5] : fnExp.list [3];
+
+            auto preFn = fn;
+            auto prevBlock = builder -> GetInsertBlock();
+
+            auto newFn = createFunction(fnName, extractFunctionType(fnExp), env);
+            fn = newFn;
+
+            auto idx = 0;
+
+            auto fnEnv = std::make_shared<Environment>(std::map<std::string, llvm::Value*>{}, env);
+
+            for (auto& arg: fn -> args()){
+                auto param = params.list[idx++];
+                auto argName = extractVarName(param);
+
+                arg.setName(argName);
+
+                auto argBinding = allocVar(argName, arg.getType(), fnEnv);
+                builder->CreateStore(&arg, argBinding);
+            }
+
+            builder->CreateRet(gen(body, fnEnv));
+
+            builder->SetInsertPoint(prevBlock);
+            fn = preFn;
+
+            return newFn;
 
         }
 

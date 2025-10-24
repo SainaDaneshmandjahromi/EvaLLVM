@@ -3,7 +3,6 @@
 EvaLLVM is a small toy compiler built using LLVM.  
 It is developed as part of a learning project to explore how high-level language constructs can be translated into LLVM Intermediate Representation (IR).
 
-The project follows the design of the Eva language compiler introduced in an educational course on compiler construction.  
 ---
 
 ## 🚀 Overview

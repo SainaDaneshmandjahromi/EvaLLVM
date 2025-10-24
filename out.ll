@@ -7,6 +7,8 @@ source_filename = "EvaLLVM"
 @2 = private unnamed_addr constant [8 x i8] c"X: %d\0A\0A\00", align 1
 @3 = private unnamed_addr constant [8 x i8] c"X: %d\0A\0A\00", align 1
 @4 = private unnamed_addr constant [18 x i8] c"Is X == 100?: %d\0A\00", align 1
+@5 = private unnamed_addr constant [8 x i8] c"X: %d\0A\0A\00", align 1
+@6 = private unnamed_addr constant [8 x i8] c"X: %d\0A\0A\00", align 1
 
 declare i32 @printf(i8*, ...)
 
@@ -30,5 +32,37 @@ entry:
   %x6 = load i32, i32* %x, align 4
   %tmpcmp = icmp eq i32 %x6, 100
   %3 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([18 x i8], [18 x i8]* @4, i32 0, i32 0), i1 %tmpcmp)
+  %x7 = load i32, i32* %x, align 4
+  %tmpcmp8 = icmp eq i32 %x7, 42
+  br i1 %tmpcmp8, label %then, label %else
+
+then:                                             ; preds = %entry
+  store i32 100, i32* %x, align 4
+  br label %ifend
+
+else:                                             ; preds = %entry
+  store i32 200, i32* %x, align 4
+  br label %ifend
+
+ifend:                                            ; preds = %else, %then
+  %tmpif = phi i32 [ 100, %then ], [ 200, %else ]
+  %x9 = load i32, i32* %x, align 4
+  %4 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @5, i32 0, i32 0), i32 %x9)
+  br label %cond
+
+cond:                                             ; preds = %body, %ifend
+  %x10 = load i32, i32* %x, align 4
+  %tmpcmp11 = icmp ugt i32 %x10, 0
+  br i1 %tmpcmp11, label %body, label %loopend
+
+body:                                             ; preds = %cond
+  %x12 = load i32, i32* %x, align 4
+  %tmpsub = sub i32 %x12, 1
+  store i32 %tmpsub, i32* %x, align 4
+  %x13 = load i32, i32* %x, align 4
+  %5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @6, i32 0, i32 0), i32 %x13)
+  br label %cond
+
+loopend:                                          ; preds = %cond
   ret i32 0
 }

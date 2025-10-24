@@ -21,6 +21,17 @@ int main(){
 
         (printf "Is X == 100?: %d\n" (== x 100))
 
+        (if (== x 42)
+        
+            (set x 100)
+            (set x 200))
+
+        (printf "X: %d\n\n" x)
+
+        (while (> x 0)
+            (begin
+                (set x (- x 1))
+                (printf "X: %d\n\n" x)))
     )";
 
     EvaLLVM vm;

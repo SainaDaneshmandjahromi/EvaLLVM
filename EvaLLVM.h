@@ -3,6 +3,8 @@
 
 
 #include <iostream>
+#include <map>
+#include <regex>
 #include <string>
 #include <cassert>
 
@@ -19,6 +21,15 @@
 using syntax::EvaParser;
 
 using Env = std::shared_ptr<Environment>;
+
+
+struct ClassInfo {
+    llvm::StructType* cls;
+    llvm::StructType* parent;
+    std::map<std::string, llvm::Type*> fieldsMap;
+    std::map<std::string, llvm::Function*> methodsMap;
+
+};
 
 // Generic binary operator:
 #define GEN_BINARY_OP(Op, varName)                     \
@@ -208,6 +219,11 @@ class EvaLLVM {
                     }
                     
                     else if (op == "var"){
+
+                            if(cls!=nullptr){
+                                return builder->getInt32(0);
+                            }
+
                             auto VarNameDecl = exp.list[1];
                             auto varName = extractVarName(VarNameDecl);
                             auto init = gen(exp.list[2], env);
@@ -250,6 +266,32 @@ class EvaLLVM {
                             return builder->CreateCall(printfFn,args);
 
                             }
+                        else if(op == "class"){
+                            auto name = exp.list[1].string;
+                            
+                            auto parent = exp.list[2].string == "null" ? nullptr: getClassByName(exp.list[2].string);
+
+                            cls = llvm::StructType::create(*ctx,name); 
+
+                            if(parent != nullptr){
+                                inheritClass(cls, parent);
+                            }else{
+                                classMap_[name] = {
+                                    cls,
+                                    parent,
+                                    {},
+                                    {}
+                                };
+                            }
+
+                            buildClassInfo(cls, exp, env);
+                            gen(exp.list[3], env);
+
+                            cls = nullptr;
+
+                            return builder->getInt32(0);
+
+                        }
                         else{
                         auto callable = gen(exp.list[0], env);
 
@@ -267,6 +309,66 @@ class EvaLLVM {
                     }
             }
             return builder->getInt32(0);
+        }
+
+        void inheritClass(llvm::StructType* cls, llvm::StructType* parent){
+            //TODO
+        }
+
+        void buildClassInfo(llvm::StructType* cls, const Exp& clsExp, Env env){
+            
+            auto className = clsExp.list[1].string;
+            auto classInfo = &classMap_[className];
+
+            auto body = clsExp.list[3];
+
+            for(auto i=1; i<body.list.size(); i++){
+                auto exp = body.list[i];
+
+                if (isVar(exp)){
+                    auto varNameDecl = exp.list[1];
+                    auto fieldName = extractVarName(varNameDecl);
+                    auto fieldTy = extractVarType(varNameDecl);
+
+                    classInfo->fieldsMap[fieldName] = fieldTy;
+                }
+                else if (isDef(exp)){
+                    auto methodName = exp.list[1].string;
+                    auto fnName = className + "_" + methodName;
+
+                    classInfo->methodsMap[methodName] = createFunction(fnName, extractFunctionType(exp), env);
+
+                }
+            }
+
+            buildClassBody(cls);
+
+        }
+
+        void buildClassBody(llvm::StructType* cls){
+            std::string className{cls->getName().data()};
+
+            auto classInfo = &classMap_[className];
+
+            auto clsFields = std::vector<llvm::Type*>{};
+
+            for(const auto& filedInfo : classInfo -> fieldsMap){
+                clsFields.push_back(filedInfo.second);
+            }
+
+            cls->setBody(clsFields, false);
+        }
+
+        bool isTaggedList(const Exp& exp, const std::string& tag){
+            return exp.type == ExpType::LIST && exp.list[0].type == ExpType::SYMBOL && exp.list[0].string == tag;
+        }
+
+        bool isVar(const Exp& exp){return isTaggedList(exp, "var");}
+
+        bool isDef(const Exp& exp){return isTaggedList(exp, "def");}
+
+        llvm::StructType* getClassByName(const std::string& name){
+            return llvm::StructType::getTypeByName(*ctx, name);
         }
         
         std::string extractVarName(const Exp& exp){
@@ -286,7 +388,7 @@ class EvaLLVM {
                 return builder->getInt8Ty()->getPointerTo();
             }
 
-            return builder -> getInt32Ty();
+            return classMap_[type_].cls->getPointerTo();
 
         }
 
@@ -303,8 +405,9 @@ class EvaLLVM {
             std::vector<llvm::Type*> paramTypes{};
 
             for(auto& param : params.list){
+                auto paramName = extractVarName(param);
                 auto paramTy = extractVarType(param);
-                paramTypes.push_back(paramTy);
+                paramTypes.push_back(paramName == "self" ? (llvm::Type*)cls->getPointerTo() : paramTy);
             }
 
             return llvm::FunctionType::get(returnType, paramTypes, false);
@@ -318,6 +421,12 @@ class EvaLLVM {
 
             auto preFn = fn;
             auto prevBlock = builder -> GetInsertBlock();
+
+            auto origName = fnName;
+
+            if (cls!= nullptr){
+                fnName = std::string(cls->getName().data())+ " " + fnName;
+            }
 
             auto newFn = createFunction(fnName, extractFunctionType(fnExp), env);
             fn = newFn;
@@ -445,7 +554,10 @@ class EvaLLVM {
         std::unique_ptr<llvm::IRBuilder<>> varsBuilder;
 
 
+        std::map<std::string, ClassInfo> classMap_;
         llvm::Function* fn; 
+
+        llvm::StructType* cls = nullptr; 
 
 
 };

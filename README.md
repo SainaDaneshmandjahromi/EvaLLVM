@@ -8,7 +8,7 @@ It is developed as part of a learning project to explore how high-level language
 ## 🚀 Overview
 
 EvaLLVM demonstrates how a simple Lisp-like language can be compiled into LLVM Intermediate Representation (IR).  
-It provides a minimal but clear example of how to build a front end that generates LLVM IR for core language features such as variables, arithmetic, and control flow.The project follows the design of the *Eva language* compiler introduced in an educational course on compiler construction.  
+It provides a minimal but clear example of how to build a front end that generates LLVM IR for core language features such as variables, arithmetic, and control flow. The project follows the design of the Eva language compiler introduced in Dmitry Soshnikov’s educational course on compiler construction.
 
 ---
 
@@ -16,21 +16,9 @@ It provides a minimal but clear example of how to build a front end that generat
 
 Make sure you have **LLVM 14** installed.
 
-Then compile the project using:
+to compile and run the project, simply execute:
 
 ```bash
-/usr/bin/clang++ -std=c++17 eva-llvm.cpp -o eva-llvm \
-  $(/opt/homebrew/opt/llvm@14/bin/llvm-config --cxxflags --ldflags --system-libs --libs core)
+./compile-run.sh
 ```
-
-
-## ▶️ Running
-
-To execute the compiler and run the generated LLVM code:
-
-```bash
-./eva-llvm
-lli ./out.ll
-echo $?
-printf "\n"
-```
+The script compiles the source code and runs the generated LLVM IR automatically.
